@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
-import User from '../models/Usuario.js';
+import User from '../models/Usuario';
 
 // Configuración
 const JWT_SECRET = process.env.JWT_SECRET || 'nocreoterminarconesto';
@@ -74,7 +74,6 @@ export const register = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
-      token,
       user: {
         id: user.id,
         numeroColegiado: user.numeroColegiado,

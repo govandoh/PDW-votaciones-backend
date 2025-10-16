@@ -12,7 +12,7 @@ router.post(
     body('numeroColegiado').notEmpty().withMessage('El número de colegiado es obligatorio'),
     body('nombres').notEmpty().withMessage('Nombres son obligatorios'),
     body('apellidos').notEmpty().withMessage('Apellidos son obligatorios'),
-    body('email').isEmail().withMessage('Debe ser un correo electrónico válido'),
+    body('correo').isEmail().withMessage('Debe ser un correo electrónico válido'),
     body('dpi').notEmpty().withMessage('El DPI es obligatorio'),
     body('fechaNacimiento').isDate().withMessage('La fecha de nacimiento debe ser válida'),
     body('password')

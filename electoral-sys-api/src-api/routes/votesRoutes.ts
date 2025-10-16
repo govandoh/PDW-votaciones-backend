@@ -4,7 +4,7 @@ import {
   registrarVoto,
   getUserVotes,
   obtenerResultadosCampaña as getCampaignResults
-} from '../controllers/votoController.js';
+} from '../controllers/votoController';
 import { verificarToken, isVoter, esAdmin } from '../middleware/auth';
 
 const router = express.Router();
