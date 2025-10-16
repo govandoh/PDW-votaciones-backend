@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
+import { socketService } from '../services/socketService';
 import Voto from '../models/Voto';
 import Campaña from '../models/Campaña';
 import Candidato from '../models/Candidato';
