@@ -13,6 +13,10 @@ import voteRoutes from './routes/votesRoutes';
 import { setupSocketIO } from './config/socket.config';
 import { socketService } from './services/socketService';
 
+
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+
 // Configuración de variables de entorno (.env)
 dotenv.config();
 const app = express();
@@ -50,6 +54,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/votes', voteRoutes);
+
+// Swagger UI (YAML)
+// Cargar el archivo swagger.yaml que se encuentra en la raíz del proyecto (o ajustar la ruta si está en otro lugar)
+const swaggerDocument = YAML.load(__dirname + '/../swagger.yaml');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Ruta base
 app.get('/', (req, res) => {

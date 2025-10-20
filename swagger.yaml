@@ -1,0 +1,671 @@
+openapi: 3.0.3
+info:
+  title: API - Sistema de Votaciones (Colegio de Ingenieros)
+  description: >
+    API REST para el sistema de votaciones del Colegio de Ingenieros.
+    Documentación de endpoints de autenticación, campañas, candidatos y votos.
+  version: "1.0.0"
+servers:
+  - url: https://electoral-sys-api.onrender.com/
+    description: Servidor de producción (Render)
+  - url: http://localhost:5000/api
+    description: Local dev server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UsuarioCreate:
+      type: object
+      required:
+        - numeroColegiado
+        - nombres
+        - apellidos
+        - correo
+        - dpi
+        - fechaNacimiento
+        - password
+      properties:
+        numeroColegiado:
+          type: string
+          example: COL0001
+        nombres:
+          type: string
+          example: Juan
+        apellidos:
+          type: string
+          example: Perez
+        correo:
+          type: string
+          example: juan.perez@example.com
+        dpi:
+          type: string
+          example: "1234567890123"
+        fechaNacimiento:
+          type: string
+          format: date
+          example: 1990-01-01
+        password:
+          type: string
+          example: Password123!
+    AuthLogin:
+      type: object
+      required:
+        - numeroColegiado
+        - dpi
+        - fechaNacimiento
+        - password
+      properties:
+        numeroColegiado:
+          type: string
+          example: COL0001
+        dpi:
+          type: string
+          example: "1234567890123"
+        fechaNacimiento:
+          type: string
+          format: date
+          example: 1990-01-01
+        password:
+          type: string
+          example: Password123!
+    AuthResponse:
+      type: object
+      properties:
+        mensaje:
+          type: string
+          example: Inicio de sesión exitoso
+        token:
+          type: string
+          description: JWT Bearer token
+        usuario:
+          type: object
+          properties:
+            id:
+              type: string
+            numeroColegiado:
+              type: string
+            nombres:
+              type: string
+            apellidos:
+              type: string
+            role:
+              type: string
+              example: votante
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Mensaje de error
+    Campaña:
+      type: object
+      properties:
+        _id:
+          type: string
+        titulo:
+          type: string
+          example: Elecciones Junta Directiva 2025
+        descripcion:
+          type: string
+          example: Elecciones para elegir la junta directiva 2025
+        cantidadVotosPorVotante:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [activa, inactiva, finalizada]
+          example: inactiva
+        fechaInicio:
+          type: string
+          format: date-time
+          example: '2025-11-01T08:00:00.000Z'
+        fechaFin:
+          type: string
+          format: date-time
+          example: '2025-11-15T18:00:00.000Z'
+        createBy:
+          type: string
+    Candidato:
+      type: object
+      properties:
+        _id:
+          type: string
+        nombre:
+          type: string
+          example: Candidato 1
+        descripcion:
+          type: string
+          example: Breve biografía
+        foto:
+          type: string
+          example: foto.jpg
+        campaña:
+          type: string
+    Voto:
+      type: object
+      properties:
+        _id:
+          type: string
+        votante:
+          type: string
+        campaña:
+          type: string
+        candidato:
+          type: string
+        fechaVoto:
+          type: string
+          format: date-time
+    ResultItem:
+      type: object
+      properties:
+        candidato:
+          type: object
+          properties:
+            id:
+              type: string
+            nombre:
+              type: string
+            foto:
+              type: string
+        votos:
+          type: integer
+paths:
+  /auth/registro:
+    post:
+      summary: Registrar un nuevo votante
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCreate'
+      responses:
+        '201':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                    example: Usuario registrado exitosamente
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      numeroColegiado:
+                        type: string
+        '400':
+          description: Error de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/login:
+    post:
+      summary: Iniciar sesión (login)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLogin'
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/verificar:
+    get:
+      summary: Verificar token / obtener usuario logueado
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token válido. Retorna usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Token inválido o no proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /campañas:
+    get:
+      summary: Obtener todas las campañas
+      tags: [Campañas]
+      responses:
+        '200':
+          description: Lista de campañas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Campaña'
+    post:
+      summary: Crear nueva campaña (admin)
+      tags: [Campañas]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, descripcion, cantidadVotosPorVotante, fechaInicio, fechaFin]
+              properties:
+                titulo:
+                  type: string
+                descripcion:
+                  type: string
+                cantidadVotosPorVotante:
+                  type: integer
+                fechaInicio:
+                  type: string
+                  format: date-time
+                fechaFin:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Campaña creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                  campaña:
+                    $ref: '#/components/schemas/Campaña'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /campañas/{id}:
+    get:
+      summary: Obtener campaña por ID
+      tags: [Campañas]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle de campaña
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaña:
+                    $ref: '#/components/schemas/Campaña'
+                  candidatos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Candidato'
+                  votosEmitidos:
+                    type: integer
+                  votosDisponibles:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualizar campaña (admin)
+      tags: [Campañas]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo: { type: string }
+                descripcion: { type: string }
+                cantidadVotosPorVotante: { type: integer }
+                estado: { type: string, enum: [activa, inactiva, finalizada] }
+                fechaInicio: { type: string, format: date-time }
+                fechaFin: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Campaña actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                  campaña:
+                    $ref: '#/components/schemas/Campaña'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /campañas/{id}/estado:
+    patch:
+      summary: Cambiar estado campaña (admin)
+      tags: [Campañas]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [activa, inactiva, finalizada]
+      responses:
+        '200':
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                  campaña:
+                    $ref: '#/components/schemas/Campaña'
+  /candidatos:
+    get:
+      summary: Obtener todos los candidatos
+      tags: [Candidatos]
+      responses:
+        '200':
+          description: Lista de candidatos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candidato'
+    post:
+      summary: Crear candidato (admin)
+      tags: [Candidatos]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, descripcion, foto, campaña]
+              properties:
+                nombre: { type: string }
+                descripcion: { type: string }
+                foto: { type: string }
+                campaña: { type: string }
+      responses:
+        '201':
+          description: Candidato creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: { type: string }
+                  candidato:
+                    $ref: '#/components/schemas/Candidato'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /candidatos/campaña/{campañaId}:
+    get:
+      summary: Obtener candidatos por campaña
+      tags: [Candidatos]
+      parameters:
+        - name: campañaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidatos de la campaña
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candidato'
+  /candidatos/{id}:
+    get:
+      summary: Obtener candidato por ID
+      tags: [Candidatos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle candidato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidato'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Actualizar candidato (admin)
+      tags: [Candidatos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                descripcion: { type: string }
+                foto: { type: string }
+      responses:
+        '200':
+          description: Candidato actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: { type: string }
+                  candidato: { $ref: '#/components/schemas/Candidato' }
+    delete:
+      summary: Eliminar candidato (admin)
+      tags: [Candidatos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidato eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: { type: string }
+  /votos:
+    post:
+      summary: Emitir un voto (usuario autenticado)
+      tags: [Votos]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaña, candidato]
+              properties:
+                campaña:
+                  type: string
+                candidato:
+                  type: string
+      responses:
+        '201':
+          description: Voto registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: { type: string }
+                  votosRestantes: { type: integer }
+                  voto: { $ref: '#/components/schemas/Voto' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /votos/usuario/campaña/{campañaId}:
+    get:
+      summary: Obtener votos del usuario en una campaña
+      tags: [Votos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: campañaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Votos del usuario en la campaña
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaña: { $ref: '#/components/schemas/Campaña' }
+                  votos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Voto'
+                  votosEmitidos:
+                    type: integer
+                  votosDisponibles:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /votos/resultados/campaña/{campañaId}:
+    get:
+      summary: Obtener resultados de una campaña
+      tags: [Votos]
+      parameters:
+        - name: campañaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resultados de la campaña
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaña:
+                    $ref: '#/components/schemas/Campaña'
+                  resultados:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResultItem'
+components:
+  responses:
+    BadRequest:
+      description: Petición inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Prohibido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+tags:
+  - name: Auth
+    description: Autenticación y registro de usuarios
+  - name: Campañas
+    description: Gestión de campañas electorales (admin)
+  - name: Candidatos
+    description: Gestión de candidatos
+  - name: Votos
+    description: Emisión y consulta de votos
