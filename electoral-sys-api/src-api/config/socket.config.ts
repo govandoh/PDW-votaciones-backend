@@ -5,13 +5,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'defaultsecret';
+const JWT_SECRET = process.env.JWT_SECRET || 'nocreoterminarconesto';
 
 // Interfaz para el usuario autenticado desde JWT
 interface AuthenticatedUser {
-  id: string;
-  numeroColegiado: string;
+  userId: string;
   role: string;
+  iat?: number;
+  exp?: number;
 }
 
 // Interfaz para datos de socket autenticado
@@ -34,7 +35,7 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
     const token = socket.handshake.auth.token;
     
     if (!token) {
-      return next(new Error('Authentication error: Token required'));
+      return next(new Error('Error de autenticación: Token requerido'));
     }
 
     try {
@@ -46,7 +47,7 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
       
       return next();
     } catch (error) {
-      return next(new Error('Authentication error: Invalid token'));
+      return next(new Error('Error de autenticación: Token inválido'));
     }
   });
 

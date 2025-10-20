@@ -28,7 +28,6 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 //Configuracion de Socket.IO
 const server = require('http').createServer(app);
 const io = setupSocketIO(server); 
@@ -37,7 +36,7 @@ socketService.initialize(io);
 // Iniciar el servidor HTTP con Socket.IO
 const PORT_SOCKET = process.env.PORT_SOCKET || 3000;
 server.listen(PORT_SOCKET, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT_SOCKET}`);
+  console.log(`Servidor - socket corriendo en el puerto ${PORT_SOCKET}`);
 });
 
 // Conexión a la base de datos MongoDB
@@ -46,7 +45,6 @@ mongoose.connect(mongoURI)
   .then(() => console.log('Conectado a MongoDB'))
   .catch(err => console.error('Error al conectar a MongoDB:', err));
   
-
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
@@ -60,7 +58,7 @@ app.get('/', (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+  console.log(`Servidor backend corriendo en el puerto  ${PORT}`);
 });
 
 export default app;
