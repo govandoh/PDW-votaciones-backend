@@ -2,6 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import {
   createCandidate,
+  getAllCandidates,
   getCandidatesByCampaign,
   getCandidateById,
   updateCandidate,
@@ -13,6 +14,9 @@ const router = express.Router();
 
 // Middleware de autenticación para todas las rutas
 router.use(verificarToken);
+
+// Obtener todos los candidatos
+router.get('/', getAllCandidates);
 
 // Obtener candidatos por campaña
 router.get('/campaign/:campaignId', getCandidatesByCampaign);

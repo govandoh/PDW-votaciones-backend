@@ -29,6 +29,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Prohibido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     UsuarioCreate:
       type: object
@@ -43,26 +55,31 @@ components:
       properties:
         numeroColegiado:
           type: string
-          example: COL0001
+          example: 0001
         nombres:
           type: string
-          example: Juan
+          example: Gerardo
         apellidos:
           type: string
-          example: Perez
+          example: Ovando
         correo:
           type: string
-          example: juan.perez@example.com
+          example: govando@example.com
         dpi:
           type: string
-          example: "1234567890123"
+          example: "3003985490101"
         fechaNacimiento:
           type: string
           format: date
-          example: 1990-01-01
+          example: "27-10-1999"
         password:
           type: string
           example: Password123!
+        role:
+          type: string
+          enum: [admin, votante]
+          example: votante
+          description: Rol de usuario (opcional, por defecto 'votante')
     AuthLogin:
       type: object
       required:
@@ -73,14 +90,14 @@ components:
       properties:
         numeroColegiado:
           type: string
-          example: COL0001
+          example: 0001
         dpi:
           type: string
-          example: "1234567890123"
+          example: "3003985490101"
         fechaNacimiento:
           type: string
           format: date
-          example: 1990-01-01
+          example: "27-10-1999"
         password:
           type: string
           example: Password123!
@@ -124,7 +141,7 @@ components:
         descripcion:
           type: string
           example: Elecciones para elegir la junta directiva 2025
-        cantidadVotosPorVotante:
+        votosPorVotante:
           type: integer
           example: 1
         estado:
@@ -134,11 +151,11 @@ components:
         fechaInicio:
           type: string
           format: date-time
-          example: '2025-11-01T08:00:00.000Z'
+          example: '2025-11-01'
         fechaFin:
           type: string
           format: date-time
-          example: '2025-11-15T18:00:00.000Z'
+          example: '2025-11-15'
         createBy:
           type: string
     Candidato:
@@ -186,7 +203,7 @@ components:
         votos:
           type: integer
 paths:
-  /auth/registro:
+  /auth/register:
     post:
       summary: Registrar un nuevo votante
       tags: [Auth]
@@ -249,7 +266,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/verifyToken:
+  /auth/verify:
     get:
       summary: Verificar token / obtener usuario logueado
       tags: [Auth]
@@ -271,10 +288,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /campañas:
+  /campaigns:
     get:
       summary: Obtener todas las campañas
       tags: [Campañas]
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Lista de campañas
@@ -295,13 +314,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [titulo, descripcion, cantidadVotosPorVotante, fechaInicio, fechaFin]
+              required: [titulo, descripcion, votosPorVotante, fechaInicio, fechaFin]
               properties:
                 titulo:
                   type: string
                 descripcion:
                   type: string
-                cantidadVotosPorVotante:
+                votosPorVotante:
                   type: integer
                 fechaInicio:
                   type: string
@@ -325,10 +344,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /campañas/{id}:
+  /campaigns/{id}:
     get:
       summary: Obtener campaña por ID
       tags: [Campañas]
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -374,7 +395,7 @@ paths:
               properties:
                 titulo: { type: string }
                 descripcion: { type: string }
-                cantidadVotosPorVotante: { type: integer }
+                votosPorVotante: { type: integer }
                 estado: { type: string, enum: [activa, inactiva, finalizada] }
                 fechaInicio: { type: string, format: date-time }
                 fechaFin: { type: string, format: date-time }
@@ -394,7 +415,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
-  /campañas/{id}/estado:
+  /campaigns/{id}/estado:
     patch:
       summary: Cambiar estado campaña (admin)
       tags: [Campañas]
@@ -416,6 +437,7 @@ paths:
                 estado:
                   type: string
                   enum: [activa, inactiva, finalizada]
+                  example: "activa"
       responses:
         '200':
           description: Estado actualizado
@@ -428,10 +450,12 @@ paths:
                     type: string
                   campaña:
                     $ref: '#/components/schemas/Campaña'
-  /candidatos:
+  /candidates:
     get:
       summary: Obtener todos los candidatos
       tags: [Candidatos]
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: Lista de candidatos
@@ -471,12 +495,14 @@ paths:
                     $ref: '#/components/schemas/Candidato'
         '400':
           $ref: '#/components/responses/BadRequest'
-  /candidatos/campaña/{campañaId}:
+  /candidates/campaign/{campaignId}:
     get:
       summary: Obtener candidatos por campaña
       tags: [Candidatos]
+      security:
+        - bearerAuth: []
       parameters:
-        - name: campañaId
+        - name: campaignId
           in: path
           required: true
           schema:
@@ -490,10 +516,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Candidato'
-  /candidatos/{id}:
+  /candidates/{id}:
     get:
       summary: Obtener candidato por ID
       tags: [Candidatos]
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -559,7 +587,7 @@ paths:
                 type: object
                 properties:
                   mensaje: { type: string }
-  /votos:
+  /votes:
     post:
       summary: Emitir un voto (usuario autenticado)
       tags: [Votos]
@@ -587,19 +615,19 @@ paths:
                 properties:
                   mensaje: { type: string }
                   votosRestantes: { type: integer }
-                  voto: { $ref: '#/components/schemas/Voto' }
+                  vote: { $ref: '#/components/schemas/Voto' }
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /votos/usuario/campaña/{campañaId}:
+  /votes/user/campaign/{campaignId}:
     get:
       summary: Obtener votos del usuario en una campaña
       tags: [Votos]
       security:
         - bearerAuth: []
       parameters:
-        - name: campañaId
+        - name: campaignId
           in: path
           required: true
           schema:
@@ -612,8 +640,8 @@ paths:
               schema:
                 type: object
                 properties:
-                  campaña: { $ref: '#/components/schemas/Campaña' }
-                  votos:
+                  campaign: { $ref: '#/components/schemas/Campaña' }
+                  votes:
                     type: array
                     items:
                       $ref: '#/components/schemas/Voto'
@@ -623,12 +651,14 @@ paths:
                     type: integer
         '404':
           $ref: '#/components/responses/NotFound'
-  /votos/resultados/campaña/{campañaId}:
+  /votes/results/campaign/{campaignId}:
     get:
       summary: Obtener resultados de una campaña
       tags: [Votos]
+      security:
+        - bearerAuth: []
       parameters:
-        - name: campañaId
+        - name: campaignId
           in: path
           required: true
           schema:
@@ -641,24 +671,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  campaña:
+                  campaign:
                     $ref: '#/components/schemas/Campaña'
-                  resultados:
+                  results:
                     type: array
                     items:
                       $ref: '#/components/schemas/ResultItem'
-    Forbidden:
-      description: Prohibido
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    NotFound:
-      description: Recurso no encontrado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
 tags:
   - name: Auth
     description: Autenticación y registro de usuarios

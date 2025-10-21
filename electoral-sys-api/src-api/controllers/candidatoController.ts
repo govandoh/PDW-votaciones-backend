@@ -4,6 +4,17 @@ import Candidate  from '../models/Candidato.js'
 import Campaign from '../models/Campaña.js';
 import Vote from '../models/Voto.js';
 
+// Obtener todos los candidatos
+export const getAllCandidates = async (req: Request, res: Response) => {
+  try {
+    const candidates = await Candidate.find().sort({ nombre: 1 });
+    res.json(candidates);
+  } catch (error) {
+    console.error('Error al obtener candidatos:', error);
+    res.status(500).json({ message: 'Error en el servidor al obtener candidatos.' });
+  }
+};
+
 // Crear un nuevo candidato
 export const createCandidate = async (req: Request, res: Response) => {
     const errors = validationResult(req);

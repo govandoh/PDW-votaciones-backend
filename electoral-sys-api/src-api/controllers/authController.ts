@@ -19,7 +19,7 @@ export const register = async (req: Request, res: Response) => {
   }
 
   try {
-    const { numeroColegiado, nombres, apellidos, correo, dpi, fechaNacimiento, password } = req.body;
+    const { numeroColegiado, nombres, apellidos, correo, dpi, fechaNacimiento, password, role } = req.body;
 
     // Verificar si ya existe un usuario con el mismo número de colegiado
     let user = await User.findOne({ numeroColegiado });
@@ -43,6 +43,14 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El correo ya está registrado.' });
     }
 
+    // Convertir formato DD-MM-YYYY a objeto Date
+    const [day, month, year] = fechaNacimiento.split('-');
+    const birthDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+
+    if (isNaN(birthDate.getTime())) {
+      return res.status(400).json({ message: 'Formato de fecha inválido.' });
+    }
+
     // Crear nuevo usuario
     user = new User({
       numeroColegiado,
@@ -50,10 +58,10 @@ export const register = async (req: Request, res: Response) => {
       apellidos,
       correo,
       dpi,
-      fechaNacimiento,
+      fechaNacimiento: birthDate,
       password,
-      // Por defecto es 'votante', administradores se crean manualmente
-      role: 'votante'
+      // Permitir especificar rol admin si se proporciona, de lo contrario usar 'votante'
+      role: role === 'admin' ? 'admin' : 'votante'
     });
 
     // Guardar usuario en la base de datos
@@ -106,32 +114,42 @@ export const login = async (req: Request, res: Response) => {
     // Buscar usuario por número de colegiado
     const user = await User.findOne({ numeroColegiado });
     if (!user) {
-      return res.status(400).json({ message: 'Credenciales inválidas.' });
+      return res.status(400).json({ message: 'Credenciales inválidas. 1' });
     }
 
     // Verificar DPI
     if (user.dpi !== dpi) {
-      return res.status(400).json({ message: 'Credenciales inválidas.' });
+      return res.status(400).json({ message: 'Credenciales inválidas. 2' });
     }
 
     if (!isValidDPI(dpi)) {
       return res.status(400).json({ message: 'El DPI debe contener exactamente 13 dígitos.' });
     }
 
-    // Verificar fecha de nacimiento - extraemos solo YYYY-MM-DD
-    const userBirthDate = new Date(user.fechaNacimiento).toISOString().split('T')[0];
-    // Asegurarnos de que la fecha de entrada se procese correctamente
-    const inputDate = new Date(fechaNacimiento);
-    const inputBirthDate = inputDate.toISOString().split('T')[0];
+    // Convertir formato DD-MM-YYYY a Date para comparación
+    const [dayInput, monthInput, yearInput] = fechaNacimiento.split('-');
+    const inputDate = new Date(`${yearInput}-${monthInput}-${dayInput}T00:00:00.000Z`);
     
-    if (userBirthDate !== inputBirthDate) {
-      return res.status(400).json({ message: 'Credenciales inválidas.' });
+    if (isNaN(inputDate.getTime())) {
+      return res.status(400).json({ message: 'Formato de fecha inválido.' });
+    }
+    
+    // Obtener la fecha almacenada en la base de datos
+    const userDate = new Date(user.fechaNacimiento);
+    
+    // Comparar año, mes y día
+    const sameYear = userDate.getFullYear() === inputDate.getFullYear();
+    const sameMonth = userDate.getMonth() === inputDate.getMonth();
+    const sameDay = userDate.getDate() === inputDate.getDate();
+    
+    if (!sameYear || !sameMonth || !sameDay) {
+      return res.status(400).json({ message: 'Credenciales inválidas. 3' });
     }
 
     // Verificar contraseña
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Credenciales inválidas.' });
+      return res.status(400).json({ message: 'Credenciales inválidas. 4' });
     }
 
     // Generar token JWT
@@ -168,7 +186,7 @@ export const login = async (req: Request, res: Response) => {
 // Verificar el token del usuario actual
 export const verifyToken = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.usuario?.id).select('-password');
+    const user = await User.findById(req.usuario?.userId).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado.' });
     }

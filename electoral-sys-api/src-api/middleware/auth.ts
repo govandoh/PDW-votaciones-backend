@@ -6,8 +6,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 interface IPayload {
-  id: string;
-  rol: string
+  userId: string;
+  role: string
   iat: number;
   exp: number;
 }
@@ -25,7 +25,7 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction) 
         // Obtener el token del encabezado Authorization
         const token = req.header('Authorization')?.replace('Bearer ', '');
         if(!token){
-            return res.status(401).json({message: 'Acceso denegado. Token no proporcionado.'});
+            return res.status(401).json({message: 'Acceso denegado. Token no proporcionado. 1'});
         }
         
         const jwtSecret = process.env.JWT_SECRET || 'nocreoterminarconesto';
@@ -46,10 +46,10 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction) 
 //Middleware para verificar si el usuario es admin
 export const esAdmin = (req: Request, res: Response, next: NextFunction) => {
     if(!req.usuario) {
-        return res.status(401).json({message: 'Acceso denegado. Usuario no autenticado.'});
+        return res.status(401).json({message: 'Acceso denegado. Usuario no autenticado. 2'});
     }
     
-    if(req.usuario.rol === 'admin'){
+    if(req.usuario.role === 'admin'){
         next();
     }else{
         return res.status(403).json({message: 'Acceso denegado. Requiere rol de administrador.'});
@@ -59,7 +59,7 @@ export const esAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 //Middleware para verificar si el usuario es votante
 export const isVoter = (req: Request, res: Response, next: NextFunction) => {
-  if (req.usuario?.rol !== 'votante') {
+  if (req.usuario?.role !== 'votante') {
     return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de votante.' });
   }
   next();

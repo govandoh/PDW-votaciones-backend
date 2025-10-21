@@ -16,12 +16,12 @@ export const createCampaign = async (req: Request, res: Response) => {
 
     // Crear nueva campaña
     const campaign = new Campaign({
-      title: titulo,
-      description: descripcion,
-      votesPorVotante: votosPorVotante,
+      titulo: titulo,
+      descripcion: descripcion,
+      cantidadVotosPorVotante: Number(votosPorVotante),
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,
-      createdBy: req.usuario?.id
+      createBy: req.usuario?.userId
     });
 
     await campaign.save();
@@ -60,17 +60,17 @@ export const getCampaignById = async (req: Request, res: Response) => {
 
     // Si el usuario es votante, verificar cuántos votos ha emitido
     let userVotesCount = 0;
-    if (req.usuario?.rol === 'votante') {
+    if (req.usuario?.role === 'votante') {
       userVotesCount = await Vote.countDocuments({
-        votante: req.usuario.id,
+        votante: req.usuario,
         campaña: campaign.id
       });
     }
 
     // Obtener conteo de votos por candidato
     const voteResults = await Vote.aggregate([
-      { $match: { campaign: campaign._id } },
-      { $group: { _id: '$candidate', count: { $sum: 1 } } }
+      { $match: { campaña: campaign._id } },
+      { $group: { _id: '$candidato', count: { $sum: 1 } } }
     ]);
 
     // Formatear los resultados para incluir nombres de candidatos
@@ -106,7 +106,7 @@ export const updateCampaign = async (req: Request, res: Response) => {
   }
 
   try {
-    const { title, description, votesPerVoter, status, startDate, endDate } = req.body;
+    const { titulo, descripcion, votosPorVotante, estado, fechaInicio, fechaFin } = req.body;
 
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) {
@@ -114,12 +114,12 @@ export const updateCampaign = async (req: Request, res: Response) => {
     }
 
     // Actualizar campos
-    if (title) campaign.titulo = title;
-    if (description) campaign.descripcion = description;
-    if (votesPerVoter) campaign.cantidadVotosPorVotante = votesPerVoter;
-    if (status) campaign.estado = status;
-    if (startDate) campaign.fechaInicio = new Date(startDate);
-    if (endDate) campaign.fechaFin = new Date(endDate);
+    if (titulo) campaign.titulo = titulo;
+    if (descripcion) campaign.descripcion = descripcion;
+    if (votosPorVotante) campaign.cantidadVotosPorVotante = Number(votosPorVotante);
+    if (estado && ['activa', 'inactiva', 'finalizada'].includes(estado)) campaign.estado = estado;
+    if (fechaInicio) campaign.fechaInicio = new Date(fechaInicio);
+    if (fechaFin) campaign.fechaFin = new Date(fechaFin);
 
     await campaign.save();
 
@@ -142,7 +142,7 @@ export const deleteCampaign = async (req: Request, res: Response) => {
     }
 
     // Verificar si hay votos asociados
-    const votesCount = await Vote.countDocuments({ campaign: campaign.id });
+    const votesCount = await Vote.countDocuments({ campaña: campaign.id });
     if (votesCount > 0) {
       return res.status(400).json({ 
         message: 'No se puede eliminar la campaña porque ya tiene votos registrados.' 
@@ -150,7 +150,7 @@ export const deleteCampaign = async (req: Request, res: Response) => {
     }
 
     // Eliminar candidatos asociados
-    await Candidate.deleteMany({ campaign: campaign.id });
+    await Candidate.deleteMany({ campaña: campaign.id });
 
     // Eliminar campaña
     await Campaign.findByIdAndDelete(req.params.id);
@@ -159,6 +159,39 @@ export const deleteCampaign = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error al eliminar campaña:', error);
     res.status(500).json({ message: 'Error en el servidor al eliminar campaña.' });
+  }
+};
+
+// Actualizar estado de campaña
+export const updateCampaignStatus = async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { estado } = req.body;
+    
+    if (!estado || !['activa', 'inactiva', 'finalizada'].includes(estado)) {
+      return res.status(400).json({ message: 'El estado proporcionado no es válido. Debe ser "activa", "inactiva" o "finalizada".' });
+    }
+
+    const campaign = await Campaign.findById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaña no encontrada.' });
+    }
+
+    // Actualizar solo el estado
+    campaign.estado = estado;
+    await campaign.save();
+
+    res.json({
+      message: `Estado de campaña actualizado a "${estado}"`,
+      campaign
+    });
+  } catch (error) {
+    console.error('Error al actualizar estado de campaña:', error);
+    res.status(500).json({ message: 'Error en el servidor al actualizar estado de campaña.' });
   }
 };
 
@@ -171,15 +204,15 @@ export const generateCampaignReport = async (req: Request, res: Response) => {
     }
 
     // Obtener candidatos
-    const candidates = await Candidate.find({ campaign: campaign.id });
+    const candidates = await Candidate.find({ campaña: campaign.id });
     
     // Obtener conteo total de votantes únicos
-    const uniqueVoters = await Vote.distinct('voter', { campaign: campaign.id });
+    const uniqueVoters = await Vote.distinct('votante', { campaña: campaign.id });
     
     // Obtener resultados detallados por candidato
     const results = await Vote.aggregate([
-      { $match: { campaign: campaign._id } },
-      { $group: { _id: '$candidate', count: { $sum: 1 } } },
+      { $match: { campaña: campaign._id } },
+      { $group: { _id: '$candidato', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
 
@@ -199,17 +232,17 @@ export const generateCampaignReport = async (req: Request, res: Response) => {
     res.json({
       campaign: {
         id: campaign.id,
-        title: campaign.titulo,
-        description: campaign.descripcion,
-        status: campaign.estado,
-        votesPerVoter: campaign.cantidadVotosPorVotante,
-        startDate: campaign.fechaInicio,
-        endDate: campaign.fechaFin
+        titulo: campaign.titulo,
+        descripcion: campaign.descripcion,
+        estado: campaign.estado,
+        votosPorVotante: campaign.cantidadVotosPorVotante,
+        fechaInicio: campaign.fechaInicio,
+        fechaFin: campaign.fechaFin
       },
       statistics: {
         totalCandidates: candidates.length,
         totalUniqueVoters: uniqueVoters.length,
-        totalVotesCast: await Vote.countDocuments({ campaign: campaign.id }),
+        totalVotesCast: await Vote.countDocuments({ campaña: campaign.id }),
         results: detailedResults
       }
     });

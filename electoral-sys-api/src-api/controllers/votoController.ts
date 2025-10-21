@@ -14,7 +14,7 @@ export const registrarVoto = async (req: Request, res: Response) => {
 
   try {
     const { campañaId, candidatoId } = req.body;
-    const votanteId = req.usuario?.id;
+    const votanteId = req.usuario?.userId;
 
     // Verificar que la campaña exista y esté activa
     const campaña = await Campaña.findById(campañaId);
@@ -77,7 +77,7 @@ export const registrarVoto = async (req: Request, res: Response) => {
 // Obtener los votos de un usuario para una campaña
 export const getUserVotes = async (req: Request, res: Response) => {
   try {
-    const votanteId = req.usuario?.id;
+    const votanteId = req.usuario?.userId;
     const { campañaId } = req.params;
 
     // Verificar que la campaña exista

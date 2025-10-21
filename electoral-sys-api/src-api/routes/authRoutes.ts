@@ -15,9 +15,17 @@ router.post(
     body('correo').isEmail().withMessage('Debe ser un correo electrónico válido'),
     body('dpi').notEmpty().withMessage('El DPI es obligatorio'),
     body('fechaNacimiento').custom((value) => {
+      // Validar formato DD-MM-YYYY
+      const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
+      if (!dateRegex.test(value)) {
+        throw new Error('El formato de fecha debe ser DD-MM-YYYY (ejemplo: 10-01-1985)');
+      }
+      
       try {
-        // Intenta crear una fecha con el valor recibido
-        const date = new Date(value);
+        // Convertir DD-MM-YYYY a formato Date válido (YYYY-MM-DD)
+        const [day, month, year] = value.split('-');
+        const date = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+        
         if (isNaN(date.getTime())) {
           throw new Error('Fecha inválida');
         }
@@ -28,7 +36,11 @@ router.post(
     }),
     body('password')
       .isLength({ min: 8 })
-      .withMessage('La contraseña debe tener al menos 8 caracteres')
+      .withMessage('La contraseña debe tener al menos 8 caracteres'),
+    body('role')
+      .optional()
+      .isIn(['admin', 'votante'])
+      .withMessage('El rol debe ser "admin" o "votante"')
   ],
   register
 );
@@ -40,9 +52,17 @@ router.post(
     body('numeroColegiado').notEmpty().withMessage('El número de colegiado es obligatorio'),
     body('dpi').notEmpty().withMessage('El DPI es obligatorio'),
     body('fechaNacimiento').custom((value) => {
+      // Validar formato DD-MM-YYYY
+      const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
+      if (!dateRegex.test(value)) {
+        throw new Error('El formato de fecha debe ser DD-MM-YYYY (ejemplo: 10-01-1985)');
+      }
+      
       try {
-        // Intenta crear una fecha con el valor recibido
-        const date = new Date(value);
+        // Convertir DD-MM-YYYY a formato Date válido (YYYY-MM-DD)
+        const [day, month, year] = value.split('-');
+        const date = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+        
         if (isNaN(date.getTime())) {
           throw new Error('Fecha inválida');
         }
