@@ -1,8 +1,8 @@
 import {Request, Response} from 'express';
 import { validationResult } from 'express-validator';
-import Candidate  from '../models/Candidato'
-import Campaign from '../models/Campaña';
-import Vote from '../models/Voto';
+import Candidate  from '../models/Candidato.js'
+import Campaign from '../models/Campaña.js';
+import Vote from '../models/Voto.js';
 
 // Crear un nuevo candidato
 export const createCandidate = async (req: Request, res: Response) => {

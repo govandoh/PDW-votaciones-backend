@@ -4,18 +4,22 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import mongoose, { set } from 'mongoose';
+import http from 'http';
 
 // Rutas (importar los routers definidos en archivo routes)
-import authRoutes from './routes/authRoutes';
-import campaignRoutes from './routes/campaignsRoutes';
-import candidateRoutes from './routes/candidatesRoutes';
-import voteRoutes from './routes/votesRoutes';
-import { setupSocketIO } from './config/socket.config';
-import { socketService } from './services/socketService';
+import authRoutes from './routes/authRoutes.js';
+import campaignRoutes from './routes/campaignsRoutes.js';
+import candidateRoutes from './routes/candidatesRoutes.js';
+import voteRoutes from './routes/votesRoutes.js';
+import { setupSocketIO } from './config/socket.config.js';
+import { socketService } from './services/socketService.js';
 
 
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+import { fileURLToPath } from 'url';
 
 // Configuración de variables de entorno (.env)
 dotenv.config();
@@ -33,7 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 //Configuracion de Socket.IO
-const server = require('http').createServer(app);
+const server = http.createServer(app);
 const io = setupSocketIO(server); 
 socketService.initialize(io);
 
@@ -56,9 +60,59 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/votes', voteRoutes);
 
 // Swagger UI (YAML)
-// Cargar el archivo swagger.yaml que se encuentra en la raíz del proyecto (o ajustar la ruta si está en otro lugar)
-const swaggerDocument = YAML.load(__dirname + '/../swagger.yaml');
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+try {
+  // Determinar directorio base de forma robusta (funciona en ESM y CommonJS)
+  function getBaseDir(): string {
+    // En ESM, import.meta.url está disponible
+    try {
+      // @ts-ignore: import.meta puede no estar permitido según la configuración de compilación
+      const filename = fileURLToPath(import.meta.url);
+      return path.dirname(filename);
+    } catch (e) {
+      // Fallback a __dirname (CommonJS) o process.cwd()
+      // @ts-ignore
+      if (typeof __dirname !== 'undefined') return __dirname;
+      return process.cwd();
+    }
+  }
+
+  const baseDir = getBaseDir();
+  // Intentar varias ubicaciones posibles para swagger.yaml
+  let swaggerPath = '';
+  let fileContents = '';
+  
+  const possiblePaths = [
+    path.join(baseDir, '..', 'swagger.yaml'),  // ../swagger.yaml
+    path.join(baseDir, '..', '..', 'swagger.yaml'), // ../../swagger.yaml
+    path.join(process.cwd(), 'swagger.yaml'),  // ./swagger.yaml
+    path.join(process.cwd(), '..', 'swagger.yaml')  // ../swagger.yaml
+  ];
+  
+  // Buscar el archivo en todas las ubicaciones posibles
+  let foundFile = false;
+  for (const testPath of possiblePaths) {
+    try {
+      fileContents = fs.readFileSync(testPath, 'utf8');
+      swaggerPath = testPath;
+      foundFile = true;
+      console.log(`Swagger file found at: ${swaggerPath}`);
+      break;
+    } catch (e) {
+      // Archivo no encontrado en esta ubicación, continuamos con la siguiente
+    }
+  }
+  
+  if (!foundFile) {
+    throw new Error('swagger.yaml no encontrado en ninguna ubicación posible');
+  }
+  // parse YAML
+  const swaggerDocument = yaml.load(fileContents) as Record<string, unknown>;
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  console.log(`Swagger UI mounted at /api-docs (from ${swaggerPath})`);
+} catch (err) {
+  console.warn('No se pudo cargar swagger.yaml para /api-docs:', err);
+}
 
 // Ruta base
 app.get('/', (req, res) => {

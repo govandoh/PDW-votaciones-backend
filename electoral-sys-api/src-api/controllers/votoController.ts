@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
-import { socketService } from '../services/socketService';
-import Voto from '../models/Voto';
-import Campaña from '../models/Campaña';
-import Candidato from '../models/Candidato';
+import { socketService } from '../services/socketService.js';
+import Voto from '../models/Voto.js';
+import Campaña from '../models/Campaña.js';
+import Candidato from '../models/Candidato.js';
 
 // Registrar un voto
 export const registrarVoto = async (req: Request, res: Response) => {

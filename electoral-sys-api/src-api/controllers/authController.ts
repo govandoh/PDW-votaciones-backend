@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
-import User from '../models/Usuario';
+import User from '../models/Usuario.js';
 
 // Configuración
 const JWT_SECRET = process.env.JWT_SECRET || 'nocreoterminarconesto';
@@ -118,9 +118,12 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El DPI debe contener exactamente 13 dígitos.' });
     }
 
-    // Verificar fecha de nacimiento
+    // Verificar fecha de nacimiento - extraemos solo YYYY-MM-DD
     const userBirthDate = new Date(user.fechaNacimiento).toISOString().split('T')[0];
-    const inputBirthDate = new Date(fechaNacimiento).toISOString().split('T')[0];
+    // Asegurarnos de que la fecha de entrada se procese correctamente
+    const inputDate = new Date(fechaNacimiento);
+    const inputBirthDate = inputDate.toISOString().split('T')[0];
+    
     if (userBirthDate !== inputBirthDate) {
       return res.status(400).json({ message: 'Credenciales inválidas.' });
     }

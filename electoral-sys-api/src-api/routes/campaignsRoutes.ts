@@ -7,8 +7,8 @@ import {
   updateCampaign,
   deleteCampaign,
   generateCampaignReport
-} from '../controllers/campañaController';
-import { verificarToken, esAdmin } from '../middleware/auth';
+} from '../controllers/campañaController.js';
+import { verificarToken, esAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

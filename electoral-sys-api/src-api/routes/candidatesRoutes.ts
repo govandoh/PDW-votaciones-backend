@@ -6,8 +6,8 @@ import {
   getCandidateById,
   updateCandidate,
   deleteCandidate
-} from '../controllers/candidatoController';
-import { verificarToken, esAdmin } from '../middleware/auth';
+} from '../controllers/candidatoController.js';
+import { verificarToken, esAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

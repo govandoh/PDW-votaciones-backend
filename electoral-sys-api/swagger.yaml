@@ -16,6 +16,19 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Petición inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     UsuarioCreate:
       type: object
@@ -236,7 +249,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /auth/verificar:
+  /auth/verifyToken:
     get:
       summary: Verificar token / obtener usuario logueado
       tags: [Auth]
@@ -634,20 +647,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/ResultItem'
-components:
-  responses:
-    BadRequest:
-      description: Petición inválida
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    Unauthorized:
-      description: No autorizado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
       description: Prohibido
       content:

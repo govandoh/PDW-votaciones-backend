@@ -4,8 +4,8 @@ import {
   registrarVoto,
   getUserVotes,
   obtenerResultadosCampaña as getCampaignResults
-} from '../controllers/votoController';
-import { verificarToken, isVoter, esAdmin } from '../middleware/auth';
+} from '../controllers/votoController.js';
+import { verificarToken, isVoter, esAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

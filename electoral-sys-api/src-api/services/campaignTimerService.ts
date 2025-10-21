@@ -1,4 +1,4 @@
-import { socketService } from './socketService';
+import { socketService } from './socketService.js';
 // Importa tu modelo de campañas o el servicio de acceso a datos
 
 interface CampaignTimer {
