@@ -19,7 +19,6 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
     'http://localhost:3000',
     'http://localhost:5173',
     'https://electoral-sys-frontend.vercel.app',
-    'electoral-sys-frontend-ledv0uz1l-govandohs-projects.vercel.app',
     process.env.CLIENT_URL
   ].filter((origin): origin is string => typeof origin === 'string');
 
