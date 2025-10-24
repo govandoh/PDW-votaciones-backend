@@ -163,25 +163,31 @@ components:
       properties:
         _id:
           type: string
+          description: "ID único del candidato"
         nombre:
           type: string
           example: "Juan Pérez"
+          description: "Nombre completo del candidato"
         descripcion:
           type: string
           example: "Ingeniero Civil con 15 años de experiencia"
+          description: "Biografía o descripción del candidato"
         foto:
           type: string
-          example: "foto.jpg"
-          description: "URL de la foto del candidato (opcional)"
+          example: "https://ejemplo.com/foto.jpg"
+          description: "URL de la foto del candidato"
         campaña:
           type: string
           description: "ID de la campaña a la que pertenece el candidato"
+          example: "68f9dadbe0ef283fafccbfc2"
         createdAt:
           type: string
           format: date-time
+          description: "Fecha de creación del registro"
         updatedAt:
           type: string
           format: date-time
+          description: "Fecha de última actualización"
     Voto:
       type: object
       properties:
@@ -489,17 +495,19 @@ paths:
                 nombre:
                   type: string
                   example: "Juan Pérez"
+                  description: "Nombre completo del candidato"
                 descripcion:
                   type: string
                   example: "Ingeniero Civil con 15 años de experiencia"
+                  description: "Biografía o descripción del candidato"
                 foto:
                   type: string
-                  example: "foto.jpg"
-                  description: "URL de la foto (opcional)"
+                  example: "https://ejemplo.com/foto.jpg"
+                  description: "URL de la foto (opcional, por defecto 'default-profile.jpg')"
                 campañaId:
                   type: string
                   example: "68f9dadbe0ef283fafccbfc2"
-                  description: "ID de la campaña"
+                  description: "ID de la campaña a la que pertenece el candidato"
       responses:
         '201':
           description: Candidato creado
@@ -587,6 +595,7 @@ paths:
         - name: id
           in: path
           required: true
+          description: ID del candidato a actualizar
           schema:
             type: string
       requestBody:
@@ -598,15 +607,19 @@ paths:
                 nombre:
                   type: string
                   example: "Juan Pérez"
+                  description: "Nuevo nombre del candidato (opcional)"
                 descripcion:
                   type: string
                   example: "Ingeniero Civil con 15 años de experiencia"
+                  description: "Nueva descripción del candidato (opcional)"
                 foto:
                   type: string
-                  example: "nueva-foto.jpg"
+                  example: "https://ejemplo.com/nueva-foto.jpg"
+                  description: "Nueva URL de la foto (opcional)"
                 campañaId:
                   type: string
                   example: "68f9dadbe0ef283fafccbfc2"
+                  description: "ID de la nueva campaña (opcional)"
       responses:
         '200':
           description: Candidato actualizado
