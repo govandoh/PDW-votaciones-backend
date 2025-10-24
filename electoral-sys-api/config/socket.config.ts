@@ -7,7 +7,6 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nocreoterminarconesto';
 
-// Interfaz para el usuario autenticado desde JWT
 interface AuthenticatedUser {
   userId: string;
   role: string;
@@ -15,19 +14,23 @@ interface AuthenticatedUser {
   exp?: number;
 }
 
-// Interfaz para datos de socket autenticado
-interface AuthenticatedSocket {
-  user: AuthenticatedUser;
-  campaignRooms: string[];
-}
-
 export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://electoral-sys-frontend.vercel.app',
+    'electoral-sys-frontend-auqp6a9u3-govandohs-projects.vercel.app',
+    process.env.CLIENT_URL
+  ].filter((origin): origin is string => typeof origin === 'string');
+
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
+      origin: allowedOrigins as string[],
       methods: ['GET', 'POST'],
-      credentials: true
-    }
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization']
+    },
+    transports: ['websocket', 'polling']
   });
 
   // Middleware para autenticar conexiones con JWT
@@ -35,20 +38,24 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
     const token = socket.handshake.auth.token;
     
     if (!token) {
+      console.log('⚠️ Socket connection without token');
       return next(new Error('Error de autenticación: Token requerido'));
     }
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-      
-      // Guardar información del usuario en el socket
       (socket as any).user = decoded;
       (socket as any).campaignRooms = [];
-      
+      console.log('✅ Socket authenticated:', decoded.userId);
       return next();
     } catch (error) {
+      console.log('❌ Invalid token:', error);
       return next(new Error('Error de autenticación: Token inválido'));
     }
+  });
+
+  io.on('connection', (socket) => {
+    console.log('🔌 New socket connection:', socket.id);
   });
 
   return io;

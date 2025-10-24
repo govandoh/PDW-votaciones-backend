@@ -3,10 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import mongoose, { set } from 'mongoose';
+import mongoose from 'mongoose';
 import http from 'http';
 
-// Rutas (importar los routers definidos en archivo routes)
+// Rutas
 import authRoutes from './routes/authRoutes.js';
 import campaignRoutes from './routes/campaignsRoutes.js';
 import candidateRoutes from './routes/candidatesRoutes.js';
@@ -14,150 +14,111 @@ import voteRoutes from './routes/votesRoutes.js';
 import { setupSocketIO } from './config/socket.config.js';
 import { socketService } from './services/socketService.js';
 
-
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { fileURLToPath } from 'url';
 
-// Configuración de variables de entorno (.env)
 dotenv.config();
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Configuración de CORS más segura
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.CLIENT_URL || ''].filter(Boolean)
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4200'];
+// CORS configuration - ACTUALIZA ESTO
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://electoral-sys-frontend.vercel.app',
+  'electoral-sys-frontend-auqp6a9u3-govandohs-projects.vercel.app', // Tu dominio de preview
+  process.env.CLIENT_URL
+].filter(Boolean); // Elimina valores undefined
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Permitir requests sin origin (como aplicaciones móviles o Postman)
+  origin: function (origin, callback) {
+    // Permite requests sin origin (como mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1 && process.env.NODE_ENV === 'production') {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
       return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(helmet());
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Añade esto ANTES de las rutas
+app.options('*', cors()); // Preflight para todas las rutas
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración de Socket.IO con el mismo servidor HTTP
+// Configuración de Socket.IO
+
 const server = http.createServer(app);
-const io = setupSocketIO(server); 
+const io = setupSocketIO(server);
 socketService.initialize(io);
 
-// Conexión a la base de datos MongoDB
-const mongoURI = process.env.MONGODB_URI;
-if (!mongoURI) {
-  console.error('MONGODB_URI no está definida en las variables de entorno');
-  process.exit(1);
-}
+// Socket.IO CORS - ACTUALIZA ESTO TAMBIÉN
+io.engine.on("connection_error", (err) => {
+  console.log('Socket.IO Connection Error:', err);
+});
 
+// Conexión a MongoDB
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/votaciones-colegio';
 mongoose.connect(mongoURI)
-  .then(() => console.log('Conectado a MongoDB'))
-  .catch(err => {
-    console.error('Error al conectar a MongoDB:', err);
-    process.exit(1);
-  });
-  
+  .then(() => console.log('✅ Conectado a MongoDB'))
+  .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/votes', voteRoutes);
 
-// Swagger UI (YAML)
+// Swagger UI
 try {
-  // Determinar directorio base de forma robusta (funciona en ESM y CommonJS)
-  function getBaseDir(): string {
-    // En ESM, import.meta.url está disponible
-    try {
-      // @ts-ignore: import.meta puede no estar permitido según la configuración de compilación
-      const filename = fileURLToPath(import.meta.url);
-      return path.dirname(filename);
-    } catch (e) {
-      // Fallback a __dirname (CommonJS) o process.cwd()
-      // @ts-ignore
-      if (typeof __dirname !== 'undefined') return __dirname;
-      return process.cwd();
-    }
-  }
-
-  const baseDir = getBaseDir();
-  // Intentar varias ubicaciones posibles para swagger.yaml
-  let swaggerPath = '';
-  let fileContents = '';
-  
-  const possiblePaths = [
-    path.join(baseDir, '..', 'swagger.yaml'),  // ../swagger.yaml
-    path.join(baseDir, '..', '..', 'swagger.yaml'), // ../../swagger.yaml
-    path.join(process.cwd(), 'swagger.yaml'),  // ./swagger.yaml
-    path.join(process.cwd(), '..', 'swagger.yaml')  // ../swagger.yaml
-  ];
-  
-  // Buscar el archivo en todas las ubicaciones posibles
-  let foundFile = false;
-  for (const testPath of possiblePaths) {
-    try {
-      fileContents = fs.readFileSync(testPath, 'utf8');
-      swaggerPath = testPath;
-      foundFile = true;
-      console.log(`Swagger file found at: ${swaggerPath}`);
-      break;
-    } catch (e) {
-      // Archivo no encontrado en esta ubicación, continuamos con la siguiente
-    }
-  }
-  
-  if (!foundFile) {
-    throw new Error('swagger.yaml no encontrado en ninguna ubicación posible');
-  }
-  // parse YAML
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const swaggerPath = path.join(__dirname, '..', 'swagger.yaml');
+  const fileContents = fs.readFileSync(swaggerPath, 'utf8');
   const swaggerDocument = yaml.load(fileContents) as Record<string, unknown>;
-
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-  console.log(`Swagger UI mounted at /api-docs (from ${swaggerPath})`);
+  console.log('✅ Swagger UI mounted at /api-docs');
 } catch (err) {
-  console.warn('No se pudo cargar swagger.yaml para /api-docs:', err);
+  console.warn('⚠️ No se pudo cargar swagger.yaml:', err);
 }
 
 // Ruta base
-app.get('/', (req: express.Request, res: express.Response) => {
+app.get('/', (req, res) => {
   res.json({ 
     message: 'API del Sistema de Votación del Colegio de Ingenieros',
-    version: '1.0.0',
-    status: 'running',
-    docs: '/api-docs'
+    status: 'online',
+    endpoints: {
+      docs: '/api-docs',
+      auth: '/api/auth',
+      campaigns: '/api/campaigns',
+      candidates: '/api/candidates',
+      votes: '/api/votes'
+    }
   });
 });
 
-// Manejo de errores global
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
-  });
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// ============================================
-// IMPORTANTE: Solo UNA llamada a .listen()
-// ============================================
-const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
-  console.log(`📡 Socket.IO habilitado en el mismo puerto`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
+// Iniciar el servidor
+const PORT_SOCKET = process.env.PORT_SOCKET || PORT;
+server.listen(PORT_SOCKET, () => {
+  console.log(`✅ Servidor (HTTP + Socket.IO) corriendo en el puerto ${PORT_SOCKET}`);
 });
 
 export default app;
