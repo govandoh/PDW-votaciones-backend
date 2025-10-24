@@ -174,7 +174,9 @@ export const login = async (req: Request, res: Response) => {
         nombres: user.nombres,
         apellidos: user.apellidos,
         correo: user.correo,
-        role: user.role
+        role: user.role,
+        dpi: user.dpi,
+        fechaNacimiento: user.fechaNacimiento
       }
     });
   } catch (error) {
@@ -197,7 +199,9 @@ export const verifyToken = async (req: Request, res: Response) => {
         numeroColegiado: user.numeroColegiado,
         nombres: user.nombres,
         correo: user.correo,
-        role: user.role
+        role: user.role,
+        dpi: user.dpi,
+        fechaNacimiento: user.fechaNacimiento
       }
     });
   } catch (error) {
