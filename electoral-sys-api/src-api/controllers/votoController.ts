@@ -13,11 +13,18 @@ export const registrarVoto = async (req: Request, res: Response) => {
   }
 
   try {
-    const { campañaId, candidatoId } = req.body;
+    // Aceptar tanto campaignId/candidateId (frontend) como campañaId/candidatoId
+    const { campaignId, candidateId, campañaId, candidatoId } = req.body;
+    const campaignIdFinal = campaignId || campañaId;
+    const candidateIdFinal = candidateId || candidatoId;
     const votanteId = req.usuario?.userId;
 
+    if (!campaignIdFinal || !candidateIdFinal) {
+      return res.status(400).json({ message: 'Se requiere el ID de la campaña y del candidato.' });
+    }
+
     // Verificar que la campaña exista y esté activa
-    const campaña = await Campaña.findById(campañaId);
+    const campaña = await Campaña.findById(campaignIdFinal);
     if (!campaña) {
       return res.status(404).json({ message: 'Campaña no encontrada.' });
     }
@@ -33,15 +40,15 @@ export const registrarVoto = async (req: Request, res: Response) => {
     }
 
     // Verificar que el candidato exista y pertenezca a la campaña
-    const candidato = await Candidato.findById(candidatoId);
-    if (!candidato || candidato.campaña.toString() !== campañaId) {
+    const candidato = await Candidato.findById(candidateIdFinal);
+    if (!candidato || candidato.campaña.toString() !== campaignIdFinal) {
       return res.status(404).json({ message: 'Candidato no encontrado en esta campaña.' });
     }
 
     // Verificar cuántos votos ha emitido el usuario en esta campaña
     const votosEmitidos = await Voto.countDocuments({
       votante: votanteId,
-      campaña: campañaId
+      campaña: campaignIdFinal
     });
 
     // Verificar si el usuario ya ha alcanzado el límite de votos permitidos
@@ -54,14 +61,23 @@ export const registrarVoto = async (req: Request, res: Response) => {
     // Crear y guardar el voto
     const voto = new Voto({
       votante: votanteId,
-      campaña: campañaId,
-      candidato: candidatoId
+      campaña: campaignIdFinal,
+      candidato: candidateIdFinal
     });
 
     await voto.save();
 
     // Verificar cuántos votos le quedan al usuario
     const votosRestantes = campaña.cantidadVotosPorVotante - (votosEmitidos + 1);
+
+    // Obtener resultados actualizados para emitir por WebSocket
+    const resultadosActualizados = await obtenerResultadosParaWebSocket(campaignIdFinal);
+    
+    // Emitir actualización de votos por WebSocket
+    socketService.emitVoteUpdate(campaignIdFinal, {
+      results: resultadosActualizados,
+      timestamp: new Date().toISOString()
+    });
 
     res.status(201).json({
       message: 'Voto registrado exitosamente',
@@ -74,14 +90,38 @@ export const registrarVoto = async (req: Request, res: Response) => {
   }
 };
 
+// Función auxiliar para obtener resultados en formato WebSocket
+async function obtenerResultadosParaWebSocket(campaignId: string) {
+  const candidatos = await Candidato.find({ campaña: campaignId });
+  const resultadosVotos = await Voto.aggregate([
+    { $match: { campaña: campaignId as any } },
+    { $group: { _id: '$candidato', count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ]);
+
+  const results = candidatos.map((candidato) => {
+    const result = resultadosVotos.find(
+      (vote) => vote._id.toString() === candidato.id.toString()
+    );
+    
+    return {
+      candidateId: candidato._id.toString(),
+      candidateName: candidato.nombre,
+      votes: result ? result.count : 0
+    };
+  });
+
+  return results.sort((a, b) => b.votes - a.votes);
+}
+
 // Obtener los votos de un usuario para una campaña
 export const getUserVotes = async (req: Request, res: Response) => {
   try {
     const votanteId = req.usuario?.userId;
-    const { campañaId } = req.params;
+    const { campaignId } = req.params;
 
     // Verificar que la campaña exista
-    const campaña = await Campaña.findById(campañaId);
+    const campaña = await Campaña.findById(campaignId);
     if (!campaña) {
       return res.status(404).json({ message: 'Campaña no encontrada.' });
     }
@@ -89,7 +129,7 @@ export const getUserVotes = async (req: Request, res: Response) => {
     // Obtener los votos del usuario en esta campaña
     const votos = await Voto.find({
       votante: votanteId,
-      campaña: campañaId
+      campaña: campaignId
     }).populate('candidato', 'nombre');
 
     // Calcular votos restantes
@@ -110,16 +150,16 @@ export const getUserVotes = async (req: Request, res: Response) => {
 // Obtener resultados de votación para una campaña
 export const obtenerResultadosCampaña = async (req: Request, res: Response) => {
   try {
-    const { campañaId } = req.params;
+    const { campaignId } = req.params;
 
     // Verificar que la campaña exista
-    const campaña = await Campaña.findById(campañaId);
+    const campaña = await Campaña.findById(campaignId);
     if (!campaña) {
       return res.status(404).json({ message: 'Campaña no encontrada.' });
     }
 
     // Obtener todos los candidatos de la campaña
-    const candidatos = await Candidato.find({ campaña: campañaId });
+    const candidatos = await Candidato.find({ campaña: campaignId });
 
     // Obtener conteo de votos por candidato
     const resultadosVotos = await Voto.aggregate([
@@ -128,30 +168,34 @@ export const obtenerResultadosCampaña = async (req: Request, res: Response) => 
       { $sort: { count: -1 } }
     ]);
 
+    // Calcular total de votos
+    const totalVotes = resultadosVotos.reduce((sum, result) => sum + result.count, 0);
+
     // Preparar resultados con información del candidato
-    const results = await Promise.all(
-      candidatos.map(async (candidato) => {
-        const result = resultadosVotos.find(
-          (vote) => vote._id.toString() === candidato.id.toString()
-        );
-        
-        return {
-          candidateId: candidato._id,
-          candidateName: candidato.nombre,
-          votes: result ? result.count : 0
-        };
-      })
-    );
+    const results = candidatos.map((candidato) => {
+      const result = resultadosVotos.find(
+        (vote) => vote._id.toString() === candidato.id.toString()
+      );
+      
+      const votes = result ? result.count : 0;
+      const percentage = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(2) : '0.00';
+      
+      return {
+        candidateId: candidato._id,
+        candidateName: candidato.nombre,
+        votes: votes,
+        percentage: percentage + '%'
+      };
+    });
 
     // Ordenar por número de votos (mayor a menor)
     results.sort((a, b) => b.votes - a.votes);
 
     // Obtener estadísticas generales
-    const totalVotes = await Voto.countDocuments({ campaña: campañaId });
-    const uniqueVoters = await Voto.distinct('votante', { campaña: campañaId });
+    const uniqueVoters = await Voto.distinct('votante', { campaña: campaignId });
 
     res.json({
-      campaña: {
+      campaign: {
         id: campaña._id,
         title: campaña.titulo,
         status: campaña.estado,
@@ -160,7 +204,7 @@ export const obtenerResultadosCampaña = async (req: Request, res: Response) => 
         endDate: campaña.fechaFin
       },
       statistics: {
-        totalVotes,
+        totalVotes: totalVotes,
         totalUniqueVoters: uniqueVoters.length,
         totalCandidates: candidatos.length
       },

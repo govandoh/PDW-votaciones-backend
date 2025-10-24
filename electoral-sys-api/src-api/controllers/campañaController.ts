@@ -47,7 +47,7 @@ export const getAllCampaigns = async (req: Request, res: Response) => {
   }
 };
 
-// Obtener campaña por ID
+// Obtener campaña por ID - CORREGIDO
 export const getCampaignById = async (req: Request, res: Response) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
@@ -55,15 +55,15 @@ export const getCampaignById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Campaña no encontrada.' });
     }
 
-    // Obtener los candidatos asociados a esta campaña
-    const candidates = await Candidate.find({ campaign: campaign.id });
+    // CORRECCIÓN: usar campaña en lugar de campaign en la consulta
+    const candidates = await Candidate.find({ campaña: campaign._id });
 
     // Si el usuario es votante, verificar cuántos votos ha emitido
     let userVotesCount = 0;
     if (req.usuario?.role === 'votante') {
       userVotesCount = await Vote.countDocuments({
-        votante: req.usuario,
-        campaña: campaign.id
+        votante: req.usuario.userId,
+        campaña: campaign._id
       });
     }
 
@@ -73,17 +73,15 @@ export const getCampaignById = async (req: Request, res: Response) => {
       { $group: { _id: '$candidato', count: { $sum: 1 } } }
     ]);
 
-    // Formatear los resultados para incluir nombres de candidatos
-    const formattedResults = await Promise.all(
-      voteResults.map(async (result) => {
-        const candidate = await Candidate.findById(result._id);
-        return {
-          candidateId: result._id,
-          candidateName: candidate ? candidate.nombre : 'Candidato desconocido',
-          votes: result.count
-        };
-      })
-    );
+    // Crear un mapa para búsqueda rápida
+    const voteMap = new Map(voteResults.map(r => [r._id.toString(), r.count]));
+
+    // Formatear los resultados incluyendo candidatos sin votos
+    const formattedResults = candidates.map(candidate => ({
+      candidateId: candidate._id,
+      candidateName: candidate.nombre,
+      votes: voteMap.get(candidate._id.toString()) || 0
+    }));
 
     res.json({
       campaign,
@@ -142,7 +140,7 @@ export const deleteCampaign = async (req: Request, res: Response) => {
     }
 
     // Verificar si hay votos asociados
-    const votesCount = await Vote.countDocuments({ campaña: campaign.id });
+    const votesCount = await Vote.countDocuments({ campaña: campaign._id });
     if (votesCount > 0) {
       return res.status(400).json({ 
         message: 'No se puede eliminar la campaña porque ya tiene votos registrados.' 
@@ -150,7 +148,7 @@ export const deleteCampaign = async (req: Request, res: Response) => {
     }
 
     // Eliminar candidatos asociados
-    await Candidate.deleteMany({ campaña: campaign.id });
+    await Candidate.deleteMany({ campaña: campaign._id });
 
     // Eliminar campaña
     await Campaign.findByIdAndDelete(req.params.id);
@@ -204,10 +202,13 @@ export const generateCampaignReport = async (req: Request, res: Response) => {
     }
 
     // Obtener candidatos
-    const candidates = await Candidate.find({ campaña: campaign.id });
+    const candidates = await Candidate.find({ campaña: campaign._id });
     
-    // Obtener conteo total de votantes únicos
-    const uniqueVoters = await Vote.distinct('votante', { campaña: campaign.id });
+    // Obtener conteo total de votos
+    const totalVotes = await Vote.countDocuments({ campaña: campaign._id });
+    
+    // Obtener conteo de votantes únicos
+    const uniqueVoters = await Vote.distinct('votante', { campaña: campaign._id });
     
     // Obtener resultados detallados por candidato
     const results = await Vote.aggregate([
@@ -216,33 +217,39 @@ export const generateCampaignReport = async (req: Request, res: Response) => {
       { $sort: { count: -1 } }
     ]);
 
-    // Formatear resultados
-    const detailedResults = await Promise.all(
-      results.map(async (result) => {
-        const candidate = await Candidate.findById(result._id);
-        return {
-          candidateId: result._id,
-          candidateName: candidate ? candidate.nombre : 'Candidato desconocido',
-          votes: result.count,
-          percentage: ((result.count / uniqueVoters.length) * 100).toFixed(2) + '%'
-        };
-      })
-    );
+    // Crear un mapa para búsqueda rápida
+    const voteMap = new Map(results.map(r => [r._id.toString(), r.count]));
+
+    // Formatear resultados con todos los candidatos
+    const detailedResults = candidates.map(candidate => {
+      const votes = voteMap.get(candidate._id.toString()) || 0;
+      const percentage = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(2) : '0.00';
+      
+      return {
+        candidateId: candidate._id,
+        candidateName: candidate.nombre,
+        votes: votes,
+        percentage: percentage + '%'
+      };
+    });
+
+    // Ordenar por votos (mayor a menor)
+    detailedResults.sort((a, b) => b.votes - a.votes);
 
     res.json({
       campaign: {
-        id: campaign.id,
-        titulo: campaign.titulo,
+        id: campaign._id,
+        title: campaign.titulo,
         descripcion: campaign.descripcion,
-        estado: campaign.estado,
-        votosPorVotante: campaign.cantidadVotosPorVotante,
-        fechaInicio: campaign.fechaInicio,
-        fechaFin: campaign.fechaFin
+        status: campaign.estado,
+        votesPerVoter: campaign.cantidadVotosPorVotante,
+        startDate: campaign.fechaInicio,
+        endDate: campaign.fechaFin
       },
       statistics: {
         totalCandidates: candidates.length,
         totalUniqueVoters: uniqueVoters.length,
-        totalVotesCast: await Vote.countDocuments({ campaña: campaign.id }),
+        totalVotesCast: totalVotes,
         results: detailedResults
       }
     });
