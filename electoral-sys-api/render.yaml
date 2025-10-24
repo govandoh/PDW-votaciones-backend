@@ -10,14 +10,14 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 1000
       - key: PORT_SOCKET
-        value: 3000
+        value: 1000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
-        value: 24h
+        value: 30min
       - key: CLIENT_URL
         sync: false

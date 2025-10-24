@@ -24,7 +24,6 @@ import { fileURLToPath } from 'url';
 // Configuración de variables de entorno (.env)
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Configuración de CORS más segura
 const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -50,16 +49,10 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//Configuracion de Socket.IO
+// Configuración de Socket.IO con el mismo servidor HTTP
 const server = http.createServer(app);
 const io = setupSocketIO(server); 
 socketService.initialize(io);
-
-// Iniciar el servidor HTTP con Socket.IO
-const PORT_SOCKET = process.env.PORT_SOCKET || 3000;
-server.listen(PORT_SOCKET, () => {
-  console.log(`Servidor - socket corriendo en el puerto ${PORT_SOCKET}`);
-});
 
 // Conexión a la base de datos MongoDB
 const mongoURI = process.env.MONGODB_URI;
@@ -137,7 +130,6 @@ try {
 }
 
 // Ruta base
-// Ruta base
 app.get('/', (req: express.Request, res: express.Response) => {
   res.json({ 
     message: 'API del Sistema de Votación del Colegio de Ingenieros',
@@ -156,10 +148,16 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor backend corriendo en el puerto ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
+// ============================================
+// IMPORTANTE: Solo UNA llamada a .listen()
+// ============================================
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
+  console.log(`📡 Socket.IO habilitado en el mismo puerto`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
 });
 
 export default app;
