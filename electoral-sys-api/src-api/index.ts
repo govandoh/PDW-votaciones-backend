@@ -26,13 +26,27 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware de seguridad y logging
+// Configuración de CORS más segura
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.CLIENT_URL || ''].filter(Boolean)
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4200'];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: function(origin, callback) {
+    // Permitir requests sin origin (como aplicaciones móviles o Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1 && process.env.NODE_ENV === 'production') {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
+
 app.use(helmet());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -48,10 +62,18 @@ server.listen(PORT_SOCKET, () => {
 });
 
 // Conexión a la base de datos MongoDB
-const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://govandoh_db_user:ycDb91DD2OVXPmG4@dev-cluster.2ypdqtm.mongodb.net/?retryWrites=true&w=majority&appName=Dev-Cluster';
+const mongoURI = process.env.MONGODB_URI;
+if (!mongoURI) {
+  console.error('MONGODB_URI no está definida en las variables de entorno');
+  process.exit(1);
+}
+
 mongoose.connect(mongoURI)
   .then(() => console.log('Conectado a MongoDB'))
-  .catch(err => console.error('Error al conectar a MongoDB:', err));
+  .catch(err => {
+    console.error('Error al conectar a MongoDB:', err);
+    process.exit(1);
+  });
   
 // Rutas
 app.use('/api/auth', authRoutes);
@@ -116,12 +138,27 @@ try {
 
 // Ruta base
 app.get('/', (req, res) => {
-  res.json({ message: 'API del Sistema de Votación del Colegio de Ingenieros' });
+  res.json({ 
+    message: 'API del Sistema de Votación del Colegio de Ingenieros',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/api-docs'
+  });
+});
+
+// Manejo de errores global
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    error: 'Something went wrong!',
+    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
+  });
 });
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor backend corriendo en el puerto  ${PORT}`);
+  console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 });
 
 export default app;
