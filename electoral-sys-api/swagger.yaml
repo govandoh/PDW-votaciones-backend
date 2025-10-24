@@ -165,15 +165,23 @@ components:
           type: string
         nombre:
           type: string
-          example: Candidato 1
+          example: "Juan Pérez"
         descripcion:
           type: string
-          example: Breve biografía
+          example: "Ingeniero Civil con 15 años de experiencia"
         foto:
           type: string
-          example: foto.jpg
+          example: "foto.jpg"
+          description: "URL de la foto del candidato (opcional)"
         campaña:
           type: string
+          description: "ID de la campaña a la que pertenece el candidato"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Voto:
       type: object
       properties:
@@ -476,12 +484,22 @@ paths:
           application/json:
             schema:
               type: object
-              required: [nombre, descripcion, foto, campaña]
+              required: [nombre, descripcion, campañaId]
               properties:
-                nombre: { type: string }
-                descripcion: { type: string }
-                foto: { type: string }
-                campaña: { type: string }
+                nombre:
+                  type: string
+                  example: "Juan Pérez"
+                descripcion:
+                  type: string
+                  example: "Ingeniero Civil con 15 años de experiencia"
+                foto:
+                  type: string
+                  example: "foto.jpg"
+                  description: "URL de la foto (opcional)"
+                campañaId:
+                  type: string
+                  example: "68f9dadbe0ef283fafccbfc2"
+                  description: "ID de la campaña"
       responses:
         '201':
           description: Candidato creado
@@ -498,6 +516,7 @@ paths:
   /candidates/campaign/{campaignId}:
     get:
       summary: Obtener candidatos por campaña
+      description: Retorna todos los candidatos asociados a una campaña específica
       tags: [Candidatos]
       security:
         - bearerAuth: []
@@ -507,15 +526,37 @@ paths:
           required: true
           schema:
             type: string
+          description: ID de la campaña
+          example: "68f9dadbe0ef283fafccbfc2"
       responses:
         '200':
-          description: Candidatos de la campaña
+          description: Lista de candidatos de la campaña
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Candidato'
+        '404':
+          description: Campaña no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaña no encontrada."
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Error en el servidor al obtener candidatos."
   /candidates/{id}:
     get:
       summary: Obtener candidato por ID
@@ -554,9 +595,18 @@ paths:
             schema:
               type: object
               properties:
-                nombre: { type: string }
-                descripcion: { type: string }
-                foto: { type: string }
+                nombre:
+                  type: string
+                  example: "Juan Pérez"
+                descripcion:
+                  type: string
+                  example: "Ingeniero Civil con 15 años de experiencia"
+                foto:
+                  type: string
+                  example: "nueva-foto.jpg"
+                campañaId:
+                  type: string
+                  example: "68f9dadbe0ef283fafccbfc2"
       responses:
         '200':
           description: Candidato actualizado

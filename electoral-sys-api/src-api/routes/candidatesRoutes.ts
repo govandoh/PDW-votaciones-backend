@@ -30,8 +30,8 @@ router.post(
   esAdmin,
   [
     body('nombre').notEmpty().withMessage('El nombre es obligatorio'),
-    body('biografia').notEmpty().withMessage('La biografía es obligatoria'),
-    body('campaignId').notEmpty().withMessage('La campaña es obligatoria')
+    body('descripcion').notEmpty().withMessage('La biografía es obligatoria'),
+    body('campañaId').notEmpty().withMessage('La campaña es obligatoria')
   ],
   createCandidate
 );
@@ -41,9 +41,10 @@ router.put(
   '/:id',
   esAdmin,
   [
-    body('name').optional(),
-    body('biography').optional(),
-    body('photo').optional()
+    body('nombre').optional(),
+    body('descripcion').optional(),
+    body('foto').optional(),
+    body('campañaId').optional()
   ],
   updateCandidate
 );

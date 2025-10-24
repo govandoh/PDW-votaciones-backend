@@ -35,7 +35,7 @@ export const createCandidate = async (req: Request, res: Response) => {
             nombre, 
             descripcion, 
             foto: foto || 'default-profile.jpg', 
-            campañaId 
+            campaña: campañaId 
         });
         await candidate.save();
 
@@ -49,15 +49,18 @@ export const createCandidate = async (req: Request, res: Response) => {
 // Obtener todos los candidatos de una campaña
 export const getCandidatesByCampaign = async (req: Request, res: Response) => {
   try {
-    const campañaId = req.params.campañaId;
+    const campaignId = req.params.campaignId;
     
     // Verificar que la campaña exista
-    const campaign = await Campaign.findById(campañaId);
+    const campaign = await Campaign.findById(campaignId);
     if (!campaign) {
       return res.status(404).json({ message: 'Campaña no encontrada.' });
     }
 
-    const candidates = await Candidate.find({ campaign: campañaId });
+    // Obtener candidatos
+    const candidates = await Candidate.find({ campaña: campaignId })
+      .populate('campaña', 'titulo estado')
+      .sort({ nombre: 1 });
     
     res.json(candidates);
   } catch (error) {
