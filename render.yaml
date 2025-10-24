@@ -4,20 +4,20 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: cd electoral-sys-api/src-api && npm install && npm run build
-    startCommand: cd electoral-sys-api/src-api && npm start
+    buildCommand: cd electoral-sys-api && npm install && npm run build
+    startCommand: cd electoral-sys-api && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 1000
+        value: 5000
       - key: PORT_SOCKET
-        value: 1000
+        value: 5000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
-        value: 30min
+        value: 24h
       - key: CLIENT_URL
         sync: false

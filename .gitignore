@@ -9,8 +9,8 @@ yarn-error.log
 /build
 /out
 /lib
-/electoral-sys-api/src-api/dist
-/electoral-sys-api/src-api/build
+electoral-sys-api/dist/
+electoral-sys-api/build/
 
 # Archivos de entorno y configuración local
 .env
@@ -18,6 +18,9 @@ yarn-error.log
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+electoral-sys-api/.env
+electoral-sys-api/.env.production
 
 # Logs
 logs
