@@ -29,7 +29,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'https://electoral-sys-frontend.vercel.app',
-  'electoral-sys-frontend-auqp6a9u3-govandohs-projects.vercel.app', // Tu dominio de preview
+  'electoral-sys-frontend-ledv0uz1l-govandohs-projects.vercel.app', // Tu dominio de preview
   process.env.CLIENT_URL
 ].filter(Boolean); // Elimina valores undefined
 
