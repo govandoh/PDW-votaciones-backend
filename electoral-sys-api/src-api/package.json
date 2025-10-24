@@ -1,7 +1,7 @@
 {
   "name": "electoral-sys-api",
   "version": "1.0.0",
-  "desxecription": "Backend para sistema de votaciones de colegio de ingenieros de Guatemala",
+  "description": "Backend para sistema de votaciones de colegio de ingenieros de Guatemala",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -13,37 +13,34 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@types/socket.io": "^3.0.1",
-    "bcrypt": "^6.0.0",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^5.9.0",
     "mongoose": "^7.6.3",
-    "morgan": "^1.10.1",
+    "morgan": "^1.10.0",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/helmet": "^0.0.48",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/js-yaml": "^4.0.9",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "^24.7.2",
-    "@types/swagger-ui-express": "^4.1.8",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.9.0",
+    "@types/swagger-ui-express": "^4.1.6",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.6.3"
   }
 }
