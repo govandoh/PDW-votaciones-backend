@@ -137,7 +137,8 @@ try {
 }
 
 // Ruta base
-app.get('/', (req, res) => {
+// Ruta base
+app.get('/', (req: express.Request, res: express.Response) => {
   res.json({ 
     message: 'API del Sistema de Votación del Colegio de Ingenieros',
     version: '1.0.0',
