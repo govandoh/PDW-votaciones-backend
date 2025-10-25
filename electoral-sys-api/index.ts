@@ -83,13 +83,12 @@ app.use('/api/votes', voteRoutes);
 
 // Swagger UI
 try {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const swaggerPath = path.join(__dirname, '..', 'swagger.yaml');
+  // Busca swagger.yaml en la raíz del proyecto (funciona en Render y local)
+  const swaggerPath = path.resolve(process.cwd(), 'swagger.yaml');
   const fileContents = fs.readFileSync(swaggerPath, 'utf8');
   const swaggerDocument = yaml.load(fileContents) as Record<string, unknown>;
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-  console.log('✅ Swagger UI mounted at /api-docs');
+  console.log(`✅ Swagger UI mounted at /api-docs usando ${swaggerPath}`);
 } catch (err) {
   console.warn('⚠️ No se pudo cargar swagger.yaml:', err);
 }
