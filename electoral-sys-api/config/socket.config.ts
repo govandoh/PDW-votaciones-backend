@@ -53,7 +53,7 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
   });
 
   io.on('connection', (socket) => {
-    console.log('🔌 New socket connection:', socket.id);
+    console.log('🔌 New socket connection:', socket.data.userId);
   });
 
   return io;
