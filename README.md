@@ -14,7 +14,12 @@ El backend, desarrollado en **Node.js + Express** con **TypeScript** y **Mongoos
 - Documentación de la API con **Swagger**
 
 ---
+## Links de Manual técnico y de usuario
 
+1. Manual Usuario: https://umgt-my.sharepoint.com/:b:/g/personal/govandoh_miumg_edu_gt/EYQ6nLAk4Y1Gvy4CLXq-ozABykKoOiw9EeKcetEhHNNHSg?e=8fXfeO
+2. Manual Técnico: https://umgt-my.sharepoint.com/:b:/g/personal/govandoh_miumg_edu_gt/EcVINpV8o8RLg4prGDxpOv4BF4ecfhwmnNpnLQ-V0oZyOg?e=qa9qQl
+   
+--
 ## Características Principales
 
 - **Registro y autenticación** de votantes y administradores con validaciones robustas.
