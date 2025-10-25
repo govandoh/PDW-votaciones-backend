@@ -14,7 +14,7 @@ class SocketService {
     if (!this.io) return;
 
     this.io.on('connection', (socket: any) => {
-      console.log(`Socket connected: ${socket.id}, User: ${socket.user.numeroColegiado}`);
+      console.log(`Socket connected: ${socket.id}, User: ${socket.user}`);
 
       // Unirse a sala de una campaña específica
       socket.on('joinCampaign', (campaignId: string) => {
