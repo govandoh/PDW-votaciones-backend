@@ -34,13 +34,12 @@ export function setupSocketIO(httpServer: HTTPServer): SocketIOServer {
 
   // Middleware para autenticar conexiones con JWT
   io.use((socket, next) => {
+    console.log('Auth handshake:', socket.handshake.auth); // <-- Verifica el contenido
     const token = socket.handshake.auth.token;
-    
     if (!token) {
       console.log('⚠️ Socket connection without token');
       return next(new Error('Error de autenticación: Token requerido'));
     }
-
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
       (socket as any).user = decoded;
